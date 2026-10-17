@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星网</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-image: url('BC.jpg'); 
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+            font-family: sans-serif;
+            padding-bottom: 100px;
+        }
+
+        .center-wrapper {
+            position: absolute;
+            top: 30%; 
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #fff;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .clock {
+            font-size: 90px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+            font-family: 'Microsoft YaHei Light', 'Microsoft YaHei UI Light', 'Microsoft YaHei', sans-serif;
+            font-weight: 300;
+            text-shadow: 2px 4px 8px rgba(0, 0, 0, 0.6);
+        }
+
+        .text-label {
+            font-size: 16px;
+            letter-spacing: 1px;
+            opacity: 0.9;
+            font-family: 'Microsoft YaHei Light', 'Microsoft YaHei UI Light', 'Microsoft YaHei', sans-serif;
+            font-weight: 300;
+            text-shadow: 1px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .content-list {
+            position: relative;
+            width: calc(100% - 100px);
+            margin: 65vh 50px 0;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            gap: 28px;
+        }
+
+        .config-box {
+            width: 280px;
+            flex: 0 1 280px;
+            background-color: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            overflow: hidden;
+            color: #fff;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .box-image {
+            width: 100%;
+            height: 145px;
+            background-color: rgba(255,255,255,0.05);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .box-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .box-content {
+            padding: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .box-content .link-title {
+            display: block;
+            font-size: 18px;
+            color: #fff;
+            text-decoration: none;
+            margin-bottom: 10px;
+            font-weight: 500;
+            word-break: break-all; 
+            transition: color 0.2s;
+        }
+
+        .box-content .link-title:hover {
+            color: #a0c4ff;
+            text-decoration: underline;
+        }
+
+        .box-content .desc-text {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.75);
+            line-height: 1.6;
+            white-space: pre-wrap; 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="center-wrapper">
+        <div class="clock" id="clock">--:--</div>
+        <div class="text-label">- 秋风扫落叶，静下来，听风声 -</div>
+    </div>
+
+    <div class="content-list" id="contentList"></div>
+
+    <script>
+        const contentList = document.getElementById('contentList');
+        const clock = document.getElementById('clock');
+
+        function updateClock() {
+            clock.textContent = new Intl.DateTimeFormat('zh-CN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            }).format(new Date());
+        }
+
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        const formatNumber = (num) => String(num).padStart(3, '0');
+
+        async function loadConfig(index) {
+            const folderName = `NEWS_${formatNumber(index)}`;
+            
+            try {
+                const webRes = await fetch(`./${folderName}/Web.txt`);
+                if (!webRes.ok) throw new Error('File not found');
+                
+                const webText = await webRes.text();
+                const lines = webText.split(/\r?\n/);
+                const linkUrl = lines[0] ? lines[0].trim() : '#';
+                const linkTitle = lines[1] ? lines[1].trim() : '无标题';
+
+                let descText = '';
+                try {
+                    const txtRes = await fetch(`./${folderName}/Text.txt`);
+                    if (txtRes.ok) descText = await txtRes.text();
+                } catch (e) {}
+
+                const box = document.createElement('div');
+                box.className = 'config-box';
+
+                const imgDiv = document.createElement('div');
+                imgDiv.className = 'box-image';
+                const img = document.createElement('img');
+                img.src = `./${folderName}/Cover.png`;
+                img.onerror = () => {
+                    imgDiv.innerHTML = '<span style="font-size:12px;color:rgba(255,255,255,0.4)">暂无封面图</span>';
+                };
+                imgDiv.appendChild(img);
+
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'box-content';
+                
+                const aTag = document.createElement('a');
+                aTag.className = 'link-title';
+                aTag.href = linkUrl;
+                aTag.target = '_blank';
+                aTag.textContent = linkTitle;
+
+                const pTag = document.createElement('p');
+                pTag.className = 'desc-text';
+                pTag.textContent = descText;
+
+                contentDiv.appendChild(aTag);
+                contentDiv.appendChild(pTag);
+                box.appendChild(imgDiv);
+                box.appendChild(contentDiv);
+
+                contentList.appendChild(box);
+                return true;
+
+            } catch (error) {
+                return false;
+            }
+        }
+
+        async function scanFolders() {
+            let index = 1;
+            let hasMore = true;
+            
+            while (hasMore) {
+                hasMore = await loadConfig(index);
+                if (hasMore) index++;
+            }
+        }
+
+        scanFolders();
+    </script>
+</body>
+</html>
